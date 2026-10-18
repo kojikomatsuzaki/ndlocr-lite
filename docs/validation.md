@@ -85,3 +85,43 @@ Process completed with exit code 1.
 2. 実資料のサイズ・処理時間に応じて上限を調整する。
 3. 必要になった段階で間接依存関係も固定し、同一画像によるエンジン更新比較を整える。
 4. 校正工程はraw出力を保持したまま、別管理として追加する。
+
+## Release ZIP入力の追加検証（2026-10-18、PR #1）
+
+検証した実装コミット：`ad1ea47dafe01d42012218846ff7b3fe85d38732`。
+参考として既存sample実行 [#4](https://github.com/kojikomatsuzaki/ndlocr-lite/actions/runs/39118004055) のOCR・診断・Artifacts全工程成功も確認しました。
+
+| 入力 | Actions実行 | 結果 |
+| --- | --- | --- |
+| release | [39118585003](https://github.com/kojikomatsuzaki/ndlocr-lite/actions/runs/39118585003) | 成功、実エンジンCPU OCR 3画像、Artifacts 16ファイル |
+| sample | [39118586900](https://github.com/kojikomatsuzaki/ndlocr-lite/actions/runs/39118586900) | 成功、従来の3画像、Artifacts 15ファイル |
+| repository | [39118629893](https://github.com/kojikomatsuzaki/ndlocr-lite/actions/runs/39118629893) | 成功、固定エンジンに含まれる公式縦書きPNG 1画像、Artifacts 7ファイル |
+| release（存在しないアセット） | [39118588926](https://github.com/kojikomatsuzaki/ndlocr-lite/actions/runs/39118588926) | 意図した失敗、入力工程で停止、OCRはスキップ、診断Artifacts 2ファイル保存 |
+
+Release試験は自作の合成画像のみを使用しました。検証用プレリリース
+[`release-input-smoke-20261018`](https://github.com/kojikomatsuzaki/ndlocr-lite/releases/tag/release-input-smoke-20261018)
+の `release-smoke.zip` に、`合成画像/`配下のJPEG2枚・PNG1枚を格納しています。
+タグは検証対象コミットを指し、原画像をGitには追加していません。
+ZIP SHA-256：`414759a098cf5182baadb81053bc20f5854a182bb8614755029928c3c9994453`。
+
+今回は4実行すべてのArtifactsをローカルへダウンロードして再検査しました。
+Release ZIPの元バイト列・release-input.json・metadata.yamlのSHA-256一致、各画像の元バイト列とのハッシュ一致、
+全出力のSHA-256、YAML/JSONの一致、各画像の処理成功、ZIPと原画像がArtifactsに含まれないことを確認しました。
+Releaseとsampleの生TXTはそれぞれ以下の3文字列でした。
+
+- `NDLOCR workflow test 2026`
+- `Keep the original image unchanged.`
+- `Raw OCR output and metadata.`
+
+repository試験の入力は `.upstream/ndlocr-lite/resource/tategaki2026-04-24-094138.png` です。
+ジョブ内で取得する固定エンジンの公式サンプルを、既存のrepository入力経路に渡しました。
+これは動作回帰試験であり、歴史資料の認識精度評価ではありません。
+失敗試験のArtifactsには、`status: failed`のrelease-input.jsonと、入力工程failure・OCR skippedを示すworkflow-status.jsonが残りました。
+
+自動テストは既存13件＋追加10件、計23件がローカルPython 3.14および各ActionsのPython 3.12で成功しました。
+追加テストはタグ・アセット指定、完全一致、ページング、取得サイズ制限・不完全ダウンロード、
+ZIPと画像のハッシュ、既存の不正ZIP拒否、別ホストへのリダイレクト時の認証ヘッダー除去、
+模擬CLIによる取得→ZIP検査→OCR→生出力・メタデータの連携を確認します。
+公式配布のactionlint 1.7.12（配布チェックサム一致）と `git diff --check` も成功しました。
+
+太政官達の4画像や高解像度歴史資料の実OCRは今回も未実施です。
