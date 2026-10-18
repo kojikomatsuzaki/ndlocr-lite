@@ -26,6 +26,29 @@ Git履歴に入った画像は、後でファイルを削除しても履歴に�
 
 原画像を別資料に置き換えて検証済みと扱うことはありません。
 
+## GitHub ReleaseのZIPを入力にする
+
+Actionsの実行画面にはファイル添付機能がないため、公開可能な画像だけをZIPにまとめ、
+リポジトリの **Releases** へアセットとしてアップロードする方式です。
+**公開リポジトリのReleaseアセットは公開されます。** 非公開・未許諾画像はアップロードしないでください。
+Git履歴には画像を追加しませんが、Releaseアセットそのものは明示的に削除するまで残ります。
+
+1. JPEG/PNGだけを収めたZIPを作ります（例: `images.zip`）。サブフォルダは利用できます。
+   `.DS_Store`、`__MACOSX`など画像以外の項目は入れないでください。
+2. [Releases](https://github.com/kojikomatsuzaki/ndlocr-lite/releases) → **Draft a new release** を開きます。
+   新しいタグ（例: `ocr-input-001`）を作り、ZIPを **Attach binaries** に追加して公開します。
+3. [Actions](https://github.com/kojikomatsuzaki/ndlocr-lite/actions/workflows/ocr.yml) → **Run workflow** を開き、
+   `input_mode=release`、`release_tag=ocr-input-001`、`release_asset=images.zip` と入力します。
+   ZIPファイル名はReleaseに表示された名前と完全一致させます。
+4. 必要なら`identifier`、`title`、`source`を入力し、ワークフローを実行します。
+5. 実行結果のArtifactsをダウンロードし、`metadata.yaml`の各画像のハッシュと処理結果を確認します。
+
+Release ZIPはランナーの一時領域に取得され、既存のZIP検証（危険なパス、
+シンボリックリンク、形式偽装、サイズ・展開率制限など）を通過した画像だけが処理されます。
+ZIPそのものや原画像は出力Artifactsに含みません。`release_tag`は半角英数字・ピリオド・
+ハイフン・アンダースコアに限定し、`release_asset`はパス・glob記号なしのZIP名を指定します。
+ReleaseのZIPはリポジトリの公開コンテンツです。処理終了後もRelease自体は自動削除されません。
+
 ## Git管理せずローカルで処理する
 
 Python 3.10以上とGitが必要です。以下はリポジトリのルートで実行します。
@@ -71,6 +94,6 @@ Artifactsが存在していても処理成功とは限りません。失敗時�
 
 ## 将来の入力拡張
 
-現状のActionsには外部URL、非公開ストレージ、ブラウザアップロードの入力経路はありません。
+現状のActionsには任意の外部URL、非公開ストレージ、ブラウザからActionsへの直接アップロード経路はありません。公開Release ZIP経由の入力には対応しています。
 非公開資料をクラウドで扱う必要が生じた段階で、権限・一時保存・削除期限を定めた経路を追加します。
 GitHub Pages、校正画面、校正履歴管理は今回の実装範囲に含めません。
