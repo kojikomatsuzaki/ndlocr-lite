@@ -4,15 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       input_mode:
-        description: 'sample: 自作の合成画像 / repository: リポジトリ内の画像・フォルダ・ZIP'
+        description: 'sample: 合成画像 / repository: リポジトリ内 / release: GitHub ReleaseのZIP'
         type: choice
-        options: [sample, repository]
+        options: [sample, repository, release]
         default: sample
         required: true
       input_path:
         description: 'repositoryモードの入力相対パス。公開可能な資料だけを指定'
         type: string
         default: inputs/example
+      release_tag:
+        description: 'releaseモード: Releaseのタグ（例: ocr-input-001）'
+        type: string
+      release_asset:
+        description: 'releaseモード: ZIPアセットの正確なファイル名（例: images.zip）'
+        type: string
       identifier:
         description: '資料識別子（不明なら空欄）'
         type: string
@@ -34,6 +40,8 @@ jobs:
       PYTHONUTF8: '1'
       INPUT_MODE: ${{ inputs.input_mode }}
       INPUT_PATH: ${{ inputs.input_path }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      RELEASE_ASSET: ${{ inputs.release_asset }}
       MATERIAL_IDENTIFIER: ${{ inputs.identifier }}
       MATERIAL_TITLE: ${{ inputs.title }}
       MATERIAL_SOURCE: ${{ inputs.source }}
@@ -90,9 +98,36 @@ jobs:
       - name: Prepare input
         id: input
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "$INPUT_MODE" == "sample" ]]; then
             python scripts/create_sample.py "$RUNNER_TEMP/ndlocr-sample"
+          elif [[ "$INPUT_MODE" == "release" ]]; then
+            # 入力値をコマンドライン上のパス・glob・オプションとして解釈させない。
+            python - <<'PY'
+          import os
+          import re
+          from pathlib import PurePosixPath
+
+          tag = os.environ['RELEASE_TAG']
+          asset = os.environ['RELEASE_ASSET']
+          if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}', tag) or tag in ('.', '..'):
+              raise ValueError('Release tag must contain only ASCII letters, digits, dots, dashes and underscores')
+          if (not asset or len(asset) > 255 or not asset.lower().endswith('.zip')
+                  or asset in ('.', '..') or '/' in asset or '\\' in asset
+                  or any(ord(char) < 32 or ord(char) == 127 for char in asset)
+                  or any(char in '*?[]' for char in asset)
+                  or PurePosixPath(asset).name != asset):
+              raise ValueError('Provide an exact ZIP asset filename without paths or glob characters')
+          PY
+            mkdir -p "$RUNNER_TEMP/ndlocr-release"
+            # ghはGitHub Actionsに搭載済み。認証情報をURLやログへ出さない。
+            gh release download "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --pattern "$RELEASE_ASSET" \
+              --dir "$RUNNER_TEMP/ndlocr-release"
+            test -f "$RUNNER_TEMP/ndlocr-release/$RELEASE_ASSET"
           elif [[ "$INPUT_MODE" != "repository" ]]; then
             echo 'Unsupported input mode' >&2
             exit 1
@@ -108,6 +143,12 @@ jobs:
             identifier="synthetic-smoke-test"
             title="自作の合成テスト画像（歴史資料ではない）"
             source="scripts/create_sample.py"
+          elif [[ "$INPUT_MODE" == "release" ]]; then
+            input_root="$RUNNER_TEMP/ndlocr-release"
+            input_path="$RELEASE_ASSET"
+            identifier="$MATERIAL_IDENTIFIER"
+            title="$MATERIAL_TITLE"
+            source="$MATERIAL_SOURCE"
           else
             input_root="$GITHUB_WORKSPACE"
             input_path="$INPUT_PATH"
