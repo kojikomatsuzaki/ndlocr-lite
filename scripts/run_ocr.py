@@ -131,7 +131,7 @@ def execute(arguments: argparse.Namespace) -> int:
                 except Exception as error:
                     failed = True
                     record['status'] = 'failed'
-                    record['error'] = type(error).__name__
+                    record['error'] = {'type': type(error).__name__, 'message': str(error)}
                     # コマンド全文や入力文字列をActionsの制御命令として解釈させない。
                     print(f'[ERROR] image {index}: {type(error).__name__}; see engine.log',
                           file=sys.stderr, flush=True)

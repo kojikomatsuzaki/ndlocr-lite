@@ -28,7 +28,7 @@
 | `images[].input_file` | 入力フォルダまたはZIP内の相対パス（ファイル名を保持） |
 | `images[].sha256`, `bytes`, `format`, `width`, `height` | 入力画像のバイト列ハッシュ、サイズ、検出形式・寸法 |
 | `images[].status` | pending / running / success / failed |
-| `images[].error` | 画像単位のエラー種別またはnull。詳細はlog |
+| `images[].error` | 画像単位のエラー種別・説明のオブジェクトまたはnull。公式CLIの詳細はlog |
 | `images[].started_at`, `finished_at` | 画像単位の開始・終了時刻。未開始ならフィールドなし |
 | `images[].command` | 実際に渡した引数配列。一時作業パスを含む |
 | `images[].outputs[]` | 出力の相対パス、SHA-256、バイト数 |
