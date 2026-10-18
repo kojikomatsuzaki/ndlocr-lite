@@ -72,6 +72,32 @@ NDLOCR-LiteはCPUで実行できるOCRです。レイアウト認識のDEIMv2、
 
 実資料の入力方法とローカル実行は[使い方](docs/usage.md)を参照してください。
 
+## Releaseに添付したZIPを処理する
+
+原画像をGitにコミットせず、同じリポジトリのReleaseから取得できます。
+
+1. JPEG・PNGだけを入れたZIPを作ります。サブフォルダ・日本語名・空白は利用できます。macOSの`__MACOSX`や`.DS_Store`は除いてください。
+2. このリポジトリの **Releases → Draft a new release** でタグ（例：`materials-001`）を指定し、ZIP（例：`images.zip`）を添付してReleaseを公開します。ソースコードの自動生成ZIPは対象外です。
+3. **Actions → Run NDLOCR-Lite → Run workflow** を開き、`input_mode`を`release`、`release_tag`を`materials-001`、`release_asset`を`images.zip`にして実行します。タグとアセット名は大文字小文字も含め完全一致です。
+4. 必要に応じて`identifier`・`title`・`source`に資料情報を入力します。`input_path`はreleaseモードでは使いません。
+5. 完了後、Artifactsの`ndlocr-実行ID-試行番号`をダウンロードします。
+
+`sample`・`repository`の操作は従来どおりです。PRの変更を試す場合は、Run workflowのブランチ選択でPRのブランチを選んでください。
+Release取得には既存の`contents: read`の`GITHUB_TOKEN`を使用し、追加のシークレットは不要です。別リポジトリのReleaseや任意URLは指定できません。
+
+ZIPはダウンロード時にも最大500 MiB（`config/default.yaml`の`max_total_bytes`）に制限し、取得サイズの不一致を拒否します。
+その後、既存のZIP検査で危険なパス、リンク・特殊ファイル、暗号化、重複名、画像以外、過大な展開量・圧縮率を拒否し、画像形式と寸法も検証します。
+取得失敗・ZIP検査失敗はジョブ失敗になります。取得途中のZIPは削除します。
+
+Artifactsには以下が残ります（ZIP・原画像自体は含めません）。
+
+- `release-input.json`：リポジトリ、指定タグ・アセット名、Release ID・URL、アセットID・更新日時、ZIPのバイト数とSHA-256、取得結果。取得に失敗した場合も可能な範囲で保存します。
+- `metadata.yaml` / `metadata.json`：既存のZIP SHA-256（取得時のローカル名は`input.zip`）と各画像のSHA-256、OCR処理結果。
+- `raw/`・`workflow-status.json`：既存モードと同じ生出力・実行状況。
+
+Releaseのタグやアセットは後から置き換えられるため、再現時は名前だけでなく保存されたSHA-256を比較してください。SHA-256の記録は出所の真正性を保証するものではありません。
+Releaseへの添付はGit履歴に原画像を残しませんが、公開リポジトリのReleaseアセットは公開され、Artifactsの7日間保持とは別に残ります。公開できる資料だけを添付してください。
+
 ## 入力画像の仕様
 
 JPEG（`.jpg` / `.jpeg`）とPNG（`.png`）に対応します。大文字拡張子も利用できます。
@@ -123,7 +149,9 @@ scripts/run_ocr.py
 scripts/prepare_input.py
 scripts/generate_metadata.py
 scripts/create_sample.py
+scripts/download_release.py
 tests/test_pipeline.py
+tests/test_release.py
 docs/architecture.md
 docs/usage.md
 docs/metadata-schema.md

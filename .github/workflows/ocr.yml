@@ -4,15 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       input_mode:
-        description: 'sample: 自作の合成画像 / repository: リポジトリ内の画像・フォルダ・ZIP'
+        description: 'sample: 合成画像 / repository: リポジトリ内 / release: ReleaseのZIP'
         type: choice
-        options: [sample, repository]
+        options: [sample, repository, release]
         default: sample
         required: true
       input_path:
         description: 'repositoryモードの入力相対パス。公開可能な資料だけを指定'
         type: string
         default: inputs/example
+      release_tag:
+        description: 'releaseモード: このリポジトリのReleaseタグ（完全一致）'
+        type: string
+      release_asset:
+        description: 'releaseモード: ZIPアセット名（拡張子を含む完全一致）'
+        type: string
       identifier:
         description: '資料識別子（不明なら空欄）'
         type: string
@@ -34,6 +40,8 @@ jobs:
       PYTHONUTF8: '1'
       INPUT_MODE: ${{ inputs.input_mode }}
       INPUT_PATH: ${{ inputs.input_path }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      RELEASE_ASSET: ${{ inputs.release_asset }}
       MATERIAL_IDENTIFIER: ${{ inputs.identifier }}
       MATERIAL_TITLE: ${{ inputs.title }}
       MATERIAL_SOURCE: ${{ inputs.source }}
@@ -89,10 +97,14 @@ jobs:
 
       - name: Prepare input
         id: input
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           if [[ "$INPUT_MODE" == "sample" ]]; then
             python scripts/create_sample.py "$RUNNER_TEMP/ndlocr-sample"
+          elif [[ "$INPUT_MODE" == "release" ]]; then
+            python scripts/download_release.py
           elif [[ "$INPUT_MODE" != "repository" ]]; then
             echo 'Unsupported input mode' >&2
             exit 1
@@ -111,6 +123,10 @@ jobs:
           else
             input_root="$GITHUB_WORKSPACE"
             input_path="$INPUT_PATH"
+            if [[ "$INPUT_MODE" == "release" ]]; then
+              input_root="$RUNNER_TEMP/ndlocr-release"
+              input_path="input.zip"
+            fi
             identifier="$MATERIAL_IDENTIFIER"
             title="$MATERIAL_TITLE"
             source="$MATERIAL_SOURCE"
@@ -129,9 +145,13 @@ jobs:
           python - <<'PY'
           import json
           import os
+          import shutil
           from pathlib import Path
           directory = Path(os.environ['RUNNER_TEMP']) / 'ndlocr-results'
           directory.mkdir(parents=True, exist_ok=True)
+          provenance = Path(os.environ['RUNNER_TEMP']) / 'ndlocr-release/release-input.json'
+          if provenance.is_file():
+              shutil.copyfile(provenance, directory / 'release-input.json')
           steps = json.loads(os.environ['STEP_RESULTS'])
           statuses = {name: value.get('outcome') for name, value in steps.items()}
           report = {
