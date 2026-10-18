@@ -68,6 +68,8 @@ NDLOCR-LiteはCPUで実行できるOCRです。レイアウト認識のDEIMv2、
 歴史資料の代用品でも、文字認識精度の評価資料でもありません。
 手動実行以外のトリガー、GitHub Pages、Webアップロード機能は設けていません。[4]
 
+[検証済みの実行 #2](https://github.com/kojikomatsuzaki/ndlocr-lite/actions/runs/39114868552)では、合成画像3枚のCPU OCRと13件のテストが成功しています。詳しくは[検証記録](docs/validation.md)を参照してください。
+
 実資料の入力方法とローカル実行は[使い方](docs/usage.md)を参照してください。
 
 ## 入力画像の仕様
@@ -143,7 +145,7 @@ python -m unittest discover -s tests -v
 
 ## ライセンス
 
-- **本リポジトリで独自に作成したコード・説明文：MIT License**。著作権表示はHiroshi Komatsuzaki。[LICENSE](LICENSE)
+- **本リポジトリで独自に作成したコード・説明文：MIT License**。著作権表示はkojikomatsuzaki。[LICENSE](LICENSE)
 - **NDLOCR-Lite本体：国立国会図書館、CC BY 4.0**。実行時に公式リポジトリから取得し、本リポジトリでは改変・再ライセンスしません。[公式LICENCE](https://github.com/ndl-lab/ndlocr-lite/blob/6feccb29e33c2467ea48894e66502a7788ae2b2d/LICENCE)
 - 公式リポジトリに含まれるモデルと関連コードは、公式の表示・ライセンス条件に従います。本リポジトリのMITを適用しません。依存ソフトウェアについては[公式LICENCE_DEPENDENCEIES](https://github.com/ndl-lab/ndlocr-lite/blob/6feccb29e33c2467ea48894e66502a7788ae2b2d/LICENCE_DEPENDENCEIES)と各配布元のライセンスを確認してください。
 - 入力資料とOCR結果に、本リポジトリのライセンスを一律に付与することはありません。
