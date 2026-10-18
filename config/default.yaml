@@ -1,0 +1,39 @@
+# 更新時は release と commit を一緒に見直し、同じ画像で比較する。
+engine:
+  name: NDLOCR-Lite
+  repository: https://github.com/ndl-lab/ndlocr-lite
+  release: '1.3.1'
+  commit: 6feccb29e33c2467ea48894e66502a7788ae2b2d
+  source_package_version: '1.3.0'
+  source_version: '0.0.0.dev0'
+  models:
+    - path: src/model/deim-s-1024x1024.onnx
+      role: layout
+      git_blob: 1a446d4d440ff670f984898a20b8f85fa8b6b284
+      argument: --det-weights
+    - path: src/model/parseq-ndl-24x256-30-tiny-189epoch-tegaki3-r8data-202604.onnx
+      role: recognition_30
+      git_blob: d9ce8c85009e746298708678b220a4805c09e6ca
+      argument: --rec-weights30
+    - path: src/model/parseq-ndl-24x384-50-tiny-300epoch-tegaki3-r8data-202604.onnx
+      role: recognition_50
+      git_blob: 2d465ad8546a9daa8fb53d3828d1c9ae653d671d
+      argument: --rec-weights50
+    - path: src/model/parseq-ndl-24x768-100-tiny-153epoch-tegaki3-r8data-202604.onnx
+      role: recognition_100
+      git_blob: f2813e712b34e1e0f94a3c6ba10e6ed637746149
+      argument: --rec-weights
+  character_config: src/config/NDLmoji.yaml
+  layout_config: src/config/ndl.yaml
+execution:
+  device: cpu
+  timeout_seconds_per_image: 600
+input:
+  extensions: ['.jpg', '.jpeg', '.png']
+  max_files: 100
+  max_file_bytes: 52428800
+  max_total_bytes: 524288000
+  max_pixels: 60000000
+  max_dimension: 12000
+  max_zip_members: 300
+  max_compression_ratio: 200
